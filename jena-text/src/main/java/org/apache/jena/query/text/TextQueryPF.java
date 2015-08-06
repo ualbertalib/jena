@@ -19,6 +19,7 @@
 package org.apache.jena.query.text;
 
 import java.util.Collection ;
+import java.util.HashMap ;
 import java.util.Iterator ;
 import java.util.LinkedHashMap ;
 import java.util.List ;
@@ -182,14 +183,32 @@ public class TextQueryPF implements PropertyFunction
         Map<String,TextHit> textResults = null;
         StrMatch match = objectToStruct(argObject, execCxt, false);
         if (null != match) {
-            List<TextHit> hits = query(match.getProperty(), match.getQueryString(), match.getLimit(), execCxt);
-            textResults = new LinkedHashMap<String,TextHit>();
-            for (TextHit hit : hits) {
-                textResults.putIfAbsent(hit.getNode().getURI(), hit);
+            // Check the context cache first
+            final String key = buildCacheKey(match);
+            Map<String,Map<String,TextHit>> cache = (Map<String,Map<String,TextHit>>)execCxt.getContext().get(cacheSymbol);
+            if (null == cache) {
+                cache = new HashMap<String,Map<String,TextHit>>();
+                execCxt.getContext().put(cacheSymbol, cache);
+            }
+            textResults = cache.get(key);
+            if (null == textResults) {
+                List<TextHit> hits = query(match.getProperty(), match.getQueryString(), match.getLimit(), execCxt);
+                textResults = new LinkedHashMap<String,TextHit>();
+                for (TextHit hit : hits) {
+                    textResults.putIfAbsent(hit.getNode().getURI(), hit);
+                }
+                cache.put(key, textResults);
             }
         }
         
         return new RepeatApplyIteratorTextQuery(input, argSubject, predicate, argObject, execCxt, textResults) ;
+    }
+    
+    private static final Symbol cacheSymbol = Symbol.create("TextQueryPF.cache");
+    
+    private static String buildCacheKey(StrMatch match) {
+        String prop = match.getProperty() != null ? match.getProperty().getURI() : "null";
+        return "prop:<<" + prop + ">> limit:<<" + match.getLimit() + ">> query:<<" + match.getQueryString() + ">>";
     }
     
     
@@ -251,8 +270,6 @@ public class TextQueryPF implements PropertyFunction
         QueryIterator qIter = new QueryIterPlainWrapper(bIter, execCxt);
         return qIter ;
     }
-    
-    private static final Symbol cacheSymbol = Symbol.create("TextQueryPF.cache");
     
     private QueryIterator concreteSubject(Binding binding, Node s, Node score, Node literal, StrMatch match, ExecutionContext execCxt, Map<String,TextHit> textResults) {
         if (!s.isURI()) {
