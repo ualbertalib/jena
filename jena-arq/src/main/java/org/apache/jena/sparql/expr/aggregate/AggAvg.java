@@ -100,8 +100,7 @@ public class AggAvg extends AggregatorBase
         public NodeValue getAccValue()
         {
             if ( count == 0 ) return noValuesToAvg ;
-            if ( super.errorCount != 0 )
-                //throw new ExprEvalException("avg: error in group") ; 
+            if ( this.getErrorCount() != 0 )
                 return null ;
             NodeValue nvCount = NodeValue.makeInteger(count) ;
             return XSDFuncOp.numDivide(total, nvCount) ;

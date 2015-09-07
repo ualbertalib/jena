@@ -18,58 +18,109 @@
 
 package org.apache.jena.sparql.expr.aggregate;
 
-import org.apache.jena.sparql.engine.binding.Binding ;
-import org.apache.jena.sparql.expr.Expr ;
-import org.apache.jena.sparql.expr.ExprEvalException ;
-import org.apache.jena.sparql.expr.NodeValue ;
-import org.apache.jena.sparql.function.FunctionEnv ;
+import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.expr.Expr;
+import org.apache.jena.sparql.expr.ExprEvalException;
+import org.apache.jena.sparql.expr.NodeValue;
+import org.apache.jena.sparql.function.FunctionEnv;
 
 /** Accumulator that passes down every value of an expression */
-abstract class AccumulatorExpr implements Accumulator
-{
-    private long count = 0 ;
-    protected long errorCount = 0 ; 
-    private final Expr expr ;
-    
-    protected AccumulatorExpr(Expr expr)
-    {
-        this.expr = expr ;
+public abstract class AccumulatorExpr implements Accumulator {
+    private long count = 0;
+    private long errorCount = 0;
+    private final Expr expr;
+
+    protected AccumulatorExpr(Expr expr) {
+        this.expr = expr;
     }
-    
+
     @Override
-    final public void accumulate(Binding binding, FunctionEnv functionEnv)
-    {
-        try { 
-            NodeValue nv = expr.eval(binding, functionEnv) ;
-            accumulate(nv, binding, functionEnv) ;
-            count++ ;
-        } catch (ExprEvalException ex)
-        {
-            errorCount++ ;
-            accumulateError(binding, functionEnv) ;
+    public void accumulate(Binding binding, FunctionEnv functionEnv) {
+        try {
+            NodeValue nv = expr.eval(binding, functionEnv);
+            accumulate(nv, binding, functionEnv);
+            incrementCount();
+        } catch (ExprEvalException ex) {
+            incrementErrorCount();
+            accumulateError(binding, functionEnv);
         }
     }
     
-    
-    // Count(?v) is different
-    @Override
-    public NodeValue getValue()
-    {
-        if ( errorCount == 0 )
-            return getAccValue() ;  
-        return null ;
+    /**
+     * Gets the expression
+     * @return Expression
+     */
+    protected final Expr getExpr() {
+        return expr;
     }
 
-    protected long getErrorCount() { return errorCount ; }
-    
-    /** Called if no errors to get the accumulated result */
-    protected abstract NodeValue getAccValue() ; 
-
-    /** Called when the expression beeing aggregated evaluates OK.
-     * Can throw ExprEvalException - in which case the accumulateError is called */
-    protected abstract void accumulate(NodeValue nv, Binding binding, FunctionEnv functionEnv) ;
-    /** Called when an evaluation of the expression causes an error
-     * or when the accumulation step throws ExprEvalException  
+    /**
+     * Increments the count of valid expression evaluations
      */
-    protected abstract void accumulateError(Binding binding, FunctionEnv functionEnv) ;
+    protected final void incrementCount() {
+        count++;
+    }
+
+    /**
+     * Increments the count of error expression evaluations
+     */
+    protected final void incrementErrorCount() {
+        errorCount++;
+    }
+
+    /**
+     * Gets the value of the accumulator
+     */
+    @Override
+    public NodeValue getValue() {
+        if (errorCount == 0)
+            return getAccValue();
+        return getErrorValue();
+    }
+
+    /**
+     * Gets the value that is returned in the event of any errors (defaults to
+     * {@code null})
+     * 
+     * @return Error value
+     */
+    protected NodeValue getErrorValue() {
+        return null;
+    }
+
+    /**
+     * Gets the count of valid expression evaluations
+     * 
+     * @return Valid expression evaluation count
+     */
+    protected final long getCount() {
+        return count;
+    }
+
+    /**
+     * Gets the count of expression evaluation errors encountered
+     * 
+     * @return Expression evaluation error count
+     */
+    protected final long getErrorCount() {
+        return errorCount;
+    }
+
+    /** Called if no errors to get the accumulated result */
+    protected abstract NodeValue getAccValue();
+
+    /**
+     * Called when the expression being aggregated evaluates OK
+     * <p>
+     * Can throw {@link ExprEvalException} in which case the
+     * {@link #accumulateError} method is called
+     * </p>
+     */
+    protected abstract void accumulate(NodeValue nv, Binding binding, FunctionEnv functionEnv);
+
+    /**
+     * Called when an evaluation of the expression causes an error or when the
+     * accumulation step throws {@link ExprEvalException}
+     */
+    protected abstract void accumulateError(Binding binding, FunctionEnv functionEnv);
 }
