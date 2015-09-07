@@ -19,14 +19,10 @@
 package org.apache.jena.riot.adapters;
 
 import static org.apache.jena.riot.RDFLanguages.JSONLD ;
-
-import com.hp.hpl.jena.n3.N3JenaWriter ;
+import org.apache.jena.n3.N3JenaWriter ;
 
 public class JenaReadersWriters
 {
-    // Temporary - eventually, replace all model.read calls with the correct call to RIOT
-    // and then the common RDFReaderRIOT can be used.
-    
     public static class RDFReaderRIOT_RDFXML        extends RDFReaderRIOT   { public RDFReaderRIOT_RDFXML()     { super("RDF/XML") ; } }
     public static class RDFReaderRIOT_TTL           extends RDFReaderRIOT   { public RDFReaderRIOT_TTL()        { super("TTL") ; } }
     public static class RDFReaderRIOT_NT            extends RDFReaderRIOT   { public RDFReaderRIOT_NT()         { super("N-TRIPLE") ; } }
