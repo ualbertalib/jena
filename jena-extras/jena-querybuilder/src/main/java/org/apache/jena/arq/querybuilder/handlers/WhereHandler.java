@@ -21,10 +21,12 @@ import java.util.Iterator ;
 import java.util.List ;
 import java.util.Map ;
 
+import org.apache.jena.arq.querybuilder.AbstractQueryBuilder;
 import org.apache.jena.arq.querybuilder.SelectBuilder;
 import org.apache.jena.arq.querybuilder.clauses.ConstructClause;
 import org.apache.jena.arq.querybuilder.rewriters.ElementRewriter;
 import org.apache.jena.graph.Node ;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple ;
 import org.apache.jena.query.Query ;
 import org.apache.jena.sparql.core.Var ;
@@ -32,9 +34,11 @@ import org.apache.jena.sparql.expr.Expr ;
 import org.apache.jena.sparql.lang.sparql_11.ParseException ;
 import org.apache.jena.sparql.syntax.* ;
 import org.apache.jena.sparql.util.ExprUtils ;
+import org.apache.jena.vocabulary.RDF;
 
 /**
- * The where handler
+ * The where handler.  Generally handles GroupGraphPattern.
+ * @see <a href="http://www.w3.org/TR/2013/REC-sparql11-query-20130321/#rGroupGraphPattern">SPARQL 11 Query Language - Group Graph Pattern</a>
  *
  */
 public class WhereHandler implements Handler {
@@ -151,16 +155,19 @@ public class WhereHandler implements Handler {
 		ElementGroup eg = getClause();
 		List<Element> lst = eg.getElements();
 		if (lst.isEmpty()) {
-			ElementTriplesBlock etb = new ElementTriplesBlock();
-			etb.addTriple(t);
-			eg.addElement(etb);
+			ElementPathBlock epb = new ElementPathBlock();
+			epb.addTriple(t);
+			eg.addElement(epb);
 		} else {
 			Element e = lst.get(lst.size() - 1);
 			if (e instanceof ElementTriplesBlock) {
 				ElementTriplesBlock etb = (ElementTriplesBlock) e;
 				etb.addTriple(t);
+			} else if (e instanceof ElementPathBlock) {
+				ElementPathBlock epb = (ElementPathBlock) e;
+				epb.addTriple(t);
 			} else {
-				ElementTriplesBlock etb = new ElementTriplesBlock();
+				ElementPathBlock etb = new ElementPathBlock();
 				etb.addTriple(t);
 				eg.addElement(etb);
 			}
@@ -175,10 +182,14 @@ public class WhereHandler implements Handler {
 	 */
 	public void addOptional(Triple t) throws IllegalArgumentException {
 		testTriple(t);
-		ElementTriplesBlock etb = new ElementTriplesBlock();
-		etb.addTriple(t);
-		ElementOptional opt = new ElementOptional(etb);
+		ElementPathBlock epb = new ElementPathBlock();
+		epb.addTriple(t);
+		ElementOptional opt = new ElementOptional(epb);
 		getClause().addElement(opt);
+	}
+	
+	public void addOptional(WhereHandler whereHandler) {
+		getClause().addElement( new ElementOptional( whereHandler.getClause()));
 	}
 
 	/**
@@ -330,4 +341,32 @@ public class WhereHandler implements Handler {
 		// no special operations required.
 	}
 	
+	/**
+	 * Create a list node from a list of objects as per RDF Collections.
+	 * 
+	 * http://www.w3.org/TR/2013/REC-sparql11-query-20130321/#collections 
+	 * 
+	 * @param objs the list of objects for the list.
+	 * @return the first blank node in the list.
+	 */
+	public Node list( Object ... objs) {
+		Node retval = NodeFactory.createBlankNode();
+		Node lastObject = retval;
+		for (int i=0;i<objs.length;i++ )
+		{
+			Node n = AbstractQueryBuilder.makeNode( objs[i], query.getPrefixMapping() );
+			addWhere( new Triple( lastObject, RDF.first.asNode(), n ));
+			if (i+1 < objs.length)
+			{
+				Node nextObject = NodeFactory.createBlankNode();
+				addWhere( new Triple( lastObject, RDF.rest.asNode(), nextObject ));
+				lastObject = nextObject;
+			} else {
+				addWhere( new Triple( lastObject, RDF.rest.asNode(), RDF.nil.asNode() ));
+			}
+			
+		}
+		
+		return retval;
+	}
 }

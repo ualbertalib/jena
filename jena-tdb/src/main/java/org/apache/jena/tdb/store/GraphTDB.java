@@ -24,7 +24,8 @@ import java.util.function.Function;
 import org.apache.jena.atlas.iterator.Iter ;
 import org.apache.jena.atlas.lib.Closeable ;
 import org.apache.jena.atlas.lib.Sync ;
-import org.apache.jena.atlas.lib.Tuple ;
+import org.apache.jena.atlas.lib.tuple.Tuple ;
+import org.apache.jena.atlas.lib.tuple.TupleFactory ;
 import org.apache.jena.graph.* ;
 import org.apache.jena.riot.other.GLib ;
 import org.apache.jena.shared.PrefixMapping ;
@@ -92,9 +93,9 @@ public class GraphTDB extends GraphView implements Closeable, Sync {
     @Override
     final public void close() {
         sync() ;
-        // Ignore - graphs are projectsion of the overlying database.
+        // Ignore - graphs are projections of the overlying database.
         // "Close graph" is messy in this projection world. 
-        //super.close() ;
+        super.close() ;
     }
 
     protected static ExtendedIterator<Triple> graphBaseFindDft(DatasetGraphTDB dataset, Triple triple) {
@@ -169,9 +170,9 @@ public class GraphTDB extends GraphView implements Closeable, Sync {
     }
 
 	private static Function<Tuple<NodeId>, Tuple<NodeId>> project4TupleTo3Tuple = item -> {
-		if (item.size() != 4)
+		if (item.len() != 4)
 			throw new TDBException("Expected a Tuple of 4, got: " + item);
-		return Tuple.createTuple(item.get(1), item.get(2), item.get(3));
+		return TupleFactory.tuple(item.get(1), item.get(2), item.get(3));
 	};
 
     // Convert from Iterator<Quad> to Iterator<Triple>

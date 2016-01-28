@@ -30,7 +30,6 @@ import java.util.Map ;
 import java.util.Map.Entry ;
 import java.util.Set ;
 
-import org.apache.jena.atlas.lib.NotImplemented ;
 import org.apache.jena.sparql.algebra.Op ;
 import org.apache.jena.sparql.algebra.OpVisitor ;
 import org.apache.jena.sparql.algebra.op.* ;
@@ -139,17 +138,17 @@ public class VarFinder
 
         @Override
         public void visit(OpJoin opJoin) {
-            joinAcc(opJoin.getLeft());
-            joinAcc(opJoin.getRight());
+            mergeVars(opJoin.getLeft());
+            mergeVars(opJoin.getRight());
         }
 
         @Override
         public void visit(OpSequence opSequence) {
             for ( Op op : opSequence.getElements() )
-                joinAcc(op);
+                mergeVars(op);
         }
 
-        private void joinAcc(Op op) {
+        private void mergeVars(Op op) {
             VarUsageVisitor usage = VarUsageVisitor.apply(op);
             defines.addAll(usage.defines);
             optDefines.addAll(usage.optDefines);
@@ -160,6 +159,26 @@ public class VarFinder
         @Override
         public void visit(OpLeftJoin opLeftJoin) {
             leftJoin(opLeftJoin.getLeft(), opLeftJoin.getRight(), opLeftJoin.getExprs());
+        }
+
+        @Override
+        public void visit(OpMinus opMinus) {
+            mergeMinusDiff(opMinus.getLeft(), opMinus.getRight()) ;
+        }
+
+        @Override
+        public void visit(OpDiff opDiff) { 
+            mergeMinusDiff(opDiff.getLeft(), opDiff.getRight()) ;
+        }
+        
+        private void mergeMinusDiff(Op left, Op right) {
+            mergeVars(left) ;
+            VarUsageVisitor usage = VarUsageVisitor.apply(right);
+            // Everything in the right side is really a filter.  
+            filterMentions.addAll(usage.defines) ;
+            filterMentions.addAll(usage.optDefines) ;
+            filterMentions.addAll(usage.filterMentions) ;
+            filterMentions.addAll(usage.assignMentions) ;
         }
 
         @Override
@@ -192,19 +211,13 @@ public class VarFinder
 
         @Override
         public void visit(OpUnion opUnion) {
-            VarUsageVisitor leftUsage = VarUsageVisitor.apply(opUnion.getLeft());
-            VarUsageVisitor rightUsage = VarUsageVisitor.apply(opUnion.getRight());
-
-            // defines = union(left.define, right.define) ??
-            // Can be both definite and optional (different sides).
-            defines.addAll(leftUsage.defines);
-            optDefines.addAll(leftUsage.optDefines);
-            filterMentions.addAll(leftUsage.filterMentions);
-            assignMentions.addAll(leftUsage.assignMentions);
-            defines.addAll(rightUsage.defines);
-            optDefines.addAll(rightUsage.optDefines);
-            filterMentions.addAll(rightUsage.filterMentions);
-            assignMentions.addAll(rightUsage.assignMentions);
+            mergeVars(opUnion.getLeft());
+            mergeVars(opUnion.getRight());
+        }
+        
+        @Override
+        public void visit(OpDisjunction opDisjunction) {
+            opDisjunction.getElements().forEach(op->mergeVars(op));
         }
 
         @Override
@@ -266,55 +279,61 @@ public class VarFinder
             VarUtils.addVarNodes(defines, opPropFunc.getSubjectArgs().getArgList()) ;
             VarUtils.addVarNodes(defines, opPropFunc.getObjectArgs().getArgList()) ;
         }
-        
-        // Not implemented: with checking. 
 
-        private void no() { 
-            throw new NotImplemented() ;
+        // Ops that add nothing to variable scoping.
+        // Some can't appear without being inside a project anyway
+        // but we process generally where possible. 
+        
+        @Override
+        public void visit(OpReduced opReduced)      { mergeVars(opReduced.getSubOp()) ; }
+
+        @Override
+        public void visit(OpDistinct opDistinct)    { mergeVars(opDistinct.getSubOp()) ; }
+
+        @Override
+        public void visit(OpSlice opSlice)          { mergeVars(opSlice.getSubOp()) ; }
+
+        @Override
+        public void visit(OpLabel opLabel)          { mergeVars(opLabel.getSubOp()) ; }
+
+        @Override
+        public void visit(OpList opList)            { mergeVars(opList.getSubOp()) ; }
+        
+        @Override
+        public void visit(OpService opService)      { mergeVars(opService.getSubOp()) ; }
+        
+        @Override
+        public void visit(OpTopN opTop)             { mergeVars(opTop.getSubOp()) ; }
+        
+        @Override
+        public void visit(OpOrder opOrder) { 
+            mergeVars(opOrder.getSubOp()) ;
+            opOrder.getConditions().forEach(sc-> {
+                sc.getExpression()    ;
+            });
         }
-        
-        @Override
-        public void visit(OpProcedure opProc) { no() ; }
-
 
         @Override
-        public void visit(OpService opService) { no(); }
+        public void visit(OpGroup opGroup) {
+            // Not subOp.
+            VarExprList varExprs = opGroup.getGroupVars() ;
+            varExprs.getExprs().forEach((v,expr)->{
+                addVar(defines, v) ;
+                // Not the expressions.
+            }) ;
+        }
 
         @Override
-        public void visit(OpDatasetNames dsNames) { no(); }
+        public void visit(OpDatasetNames dsNames) {
+            addVar(defines, dsNames.getGraphNode()) ;
+        }
 
         @Override
-        public void visit(OpLabel opLabel) { no(); }
-
-        @Override
-        public void visit(OpDiff opDiff) { no(); }
-
-        @Override
-        public void visit(OpMinus opMinus) { no(); }
-
-        @Override
-        public void visit(OpDisjunction opDisjunction) { no(); }
-
-        @Override
-        public void visit(OpList opList) { no(); }
-
-        @Override
-        public void visit(OpOrder opOrder) { no(); }
-
-        @Override
-        public void visit(OpReduced opReduced) { no(); }
-
-        @Override
-        public void visit(OpDistinct opDistinct) { no(); }
-
-        @Override
-        public void visit(OpSlice opSlice) { no(); }
-
-        @Override
-        public void visit(OpGroup opGroup) { no(); }
-
-        @Override
-        public void visit(OpTopN opTop) { no(); }
+        public void visit(OpProcedure opProc) { 
+            for ( Expr expr :  opProc.getArgs() ) {
+                Set<Var> vars = expr.getVarsMentioned() ;
+                defines.addAll(vars) ;
+            }
+        }
     }
-
 }

@@ -16,16 +16,14 @@
    limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.apache.jena</groupId>
   <artifactId>jena-parent</artifactId>
   <packaging>pom</packaging>
   <url>http://jena.apache.org/</url>
-  <version>15-SNAPSHOT</version>
+  <version>16-SNAPSHOT</version>
   <name>Apache Jena - Parent</name>
 
   <parent>
@@ -42,7 +40,7 @@
       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
- 	
+ 
   <organization>
     <name>The Apache Software Foundation</name>
     <url>http://www.apache.org/</url>
@@ -54,15 +52,15 @@
     <ver.junit>4.12</ver.junit>
     <ver.xerces>2.11.0</ver.xerces>
 
-    <ver.jsonldjava>0.5.1</ver.jsonldjava>
+    <ver.jsonldjava>0.7.0</ver.jsonldjava>
     <!-- Used by jena-osgi and must be in-step with jsonldjava -->
     <ver.jackson>2.3.3</ver.jackson>
 
     <!-- These are connected because solr4j depends on httpclient as well -->
     <ver.httpclient>4.2.6</ver.httpclient>
-    <ver.httpcore>4.2.6</ver.httpcore>
+    <ver.httpcore>4.2.5</ver.httpcore>
     <!-- Normally, these are the same as the above
-	 In the case of 4.2.6, there isn't a httpcore-osgi.
+         In the case of 4.2.6, there isn't a httpcore-osgi.
     -->
     <ver.httpcore-osgi>4.2.5</ver.httpcore-osgi>
     <ver.httpclient-osgi>4.2.6</ver.httpclient-osgi>
@@ -71,6 +69,9 @@
     <ver.lucene>4.9.1</ver.lucene>
     <ver.solr>4.9.1</ver.solr>
     <ver.spatial4j>0.4.1</ver.spatial4j>
+
+    <ver.mockito>1.9.5</ver.mockito>
+    <ver.awaitility>1.6.4</ver.awaitility>
 
     <jdk.version>1.8</jdk.version>
     <targetJdk>${jdk.version}</targetJdk> <!-- MPMD-86 workaround -->
@@ -145,38 +146,38 @@
       </dependency>
 
       <dependency>
-	<groupId>commons-codec</groupId>
-	<artifactId>commons-codec</artifactId>
-	<version>${ver.commons-codec}</version>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${ver.commons-codec}</version>
       </dependency>
       
       <dependency>
-	<groupId>org.apache.thrift</groupId>
-	<artifactId>libthrift</artifactId>
-	<version>0.9.2</version>
-	<exclusions>
-	  <!-- Use whatever version Jena is using -->
-	  <exclusion>
-	    <groupId>org.apache.httpcomponents</groupId>
-	    <artifactId>httpcore</artifactId>
-	  </exclusion>
-	  <exclusion>
-	    <groupId>org.apache.commons</groupId>
-	    <artifactId>commons-lang3</artifactId>
-	  </exclusion>
-	</exclusions>
+        <groupId>org.apache.thrift</groupId>
+        <artifactId>libthrift</artifactId>
+        <version>0.9.2</version>
+        <exclusions>
+          <!-- Use whatever version Jena is using -->
+          <exclusion>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
-	<groupId>org.apache.commons</groupId>
-	<artifactId>commons-csv</artifactId>
-	<version>1.0</version>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>1.0</version>
       </dependency>
 
       <dependency>
-	<groupId>org.apache.commons</groupId>
-	<artifactId>commons-lang3</artifactId>
-	<version>3.3.2</version>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.3.2</version>
       </dependency>
 
       <dependency>
@@ -189,6 +190,13 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
         <version>4.0</version>
+      </dependency>
+      
+      <!-- supports persistent data structures -->
+      <dependency>
+        <groupId>com.github.andrewoma.dexx</groupId>
+        <artifactId>dexx-collections</artifactId>
+        <version>0.2</version>
       </dependency>
       
       <dependency>
@@ -210,12 +218,20 @@
             <artifactId>httpclient</artifactId>
           </exclusion>
           <exclusion>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient-osgi</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore-osgi</artifactId>
+          </exclusion>
+          <exclusion>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
-
+      
       <!-- Lucene dependencies -->
       <dependency>
         <groupId>org.apache.lucene</groupId>
@@ -343,8 +359,14 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-all</artifactId>
-        <version>1.9.5</version>
+        <version>${ver.mockito}</version>
         <scope>test</scope>
+      </dependency>
+ 
+     <dependency>
+        <groupId>com.jayway.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>${ver.awaitility}</version>
       </dependency>
     </dependencies>
 
@@ -425,7 +447,8 @@
         </executions>
         <configuration>
            <excludeSubProjects>true</excludeSubProjects>
-             <excludes>
+         <excludes>
+           <exclude>**/META-INF/services/*</exclude>
                <!--
                jena-core exclusions
                -->
@@ -494,17 +517,17 @@
                <exclude>**/log4j-testing.properties</exclude>
                <exclude>**/derby.log</exclude>
                <exclude>**/DB/**/*</exclude>
-	       <!-- TDB config files JSON - no comments allowed -->
+           <!-- TDB config files JSON - no comments allowed -->
                <exclude>**/tdb*.cfg</exclude>
-	       <!-- Fuseki2 server "run" area -->
-	       <exclude>**/run/**/*</exclude>
-	       <!-- Cached classpath for commands - autogenerated -->
-	       <exclude>**/*.classpath</exclude>
+           <!-- Fuseki2 server "run" area -->
+           <exclude>**/run/**/*</exclude>
+           <!-- Cached classpath for commands - autogenerated -->
+           <exclude>**/*.classpath</exclude>
 
-	       <!-- Exclude anything created during the build (plugin generated files) ->-->
-	       <exclude>**/target/**/*</exclude>
-	       <!-- MSHADE-124 -->
-	       <exclude>**/dependency-reduced-pom.xml</exclude>
+           <!-- Exclude anything created during the build (plugin generated files) ->-->
+           <exclude>**/target/**/*</exclude>
+           <!-- MSHADE-124 -->
+           <exclude>**/dependency-reduced-pom.xml</exclude>
             </excludes>
         </configuration>
       </plugin>
@@ -540,10 +563,10 @@
             <lifecycleMappingMetadata>
               <pluginExecutions>
                 <pluginExecution>
-                  <!--
-		    Warning:
-		    "maven-remote-resources-plugin (goal "process") is ignored by m2e." 
-		  -->
+                  <!-- 
+            Warning:
+            "maven-remote-resources-plugin (goal "process") is ignored by m2e." 
+                  -->
                   <pluginExecutionFilter>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
@@ -558,9 +581,9 @@
                 </pluginExecution>
                 <pluginExecution>
                   <!-- 
-		    Warning:
-		    "maven-enforcer-plugin (goal "enforce") is ignored by m2e." 
-		  -->
+            Warning:
+            "maven-enforcer-plugin (goal "enforce") is ignored by m2e." 
+                  -->
                   <pluginExecutionFilter>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-remote-resources-plugin</artifactId>
@@ -573,12 +596,12 @@
                     <ignore />
                   </action>
                 </pluginExecution>
-
-		<pluginExecution>
+                
+                <pluginExecution>
                   <!--
-		    Error:
-		    Plugin execution not covered by lifecycle configuration
-		  -->
+            Error:
+            Plugin execution not covered by lifecycle configuration
+                  -->
                   <pluginExecutionFilter>
                     <groupId>org.apache.rat</groupId>
                     <artifactId>apache-rat-plugin</artifactId>
@@ -592,6 +615,20 @@
                   </action>
                 </pluginExecution>
 
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.xenei</groupId>
+                    <artifactId>contract-test-maven-plugin</artifactId>
+                    <versionRange>[0.1.5,)</versionRange>
+                    <goals>
+                      <goal>contract-test</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                
               </pluginExecutions>
             </lifecycleMappingMetadata>
           </configuration>
@@ -663,9 +700,9 @@
           </configuration>
         </plugin>
 
-	<!-- Temp fix for remote-resources while waiting for remote-resources >1.5
-	     1.6 should fix this - SNAPSHOT already does.
-	-->
+        <!-- Temp fix for remote-resources while waiting for remote-resources >1.5
+             1.6 should fix this - SNAPSHOT already does.
+        -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-remote-resources-plugin</artifactId>

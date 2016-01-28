@@ -31,9 +31,9 @@ public class TestTransactionMem extends AbstractTestTransaction
     @Override
     protected Dataset create()
     { 
-        DatasetGraph dsg = DatasetGraphFactory.createMem() ;
+        DatasetGraph dsg = DatasetGraphFactory.create() ;
         DatasetGraphWithLock dsgl = new  DatasetGraphWithLock(dsg) ;
-        return DatasetFactory.create(dsgl) ;
+        return DatasetFactory.wrap(dsgl) ;
     }
     
     // Tests that don't make sense because they abort a write transaction.

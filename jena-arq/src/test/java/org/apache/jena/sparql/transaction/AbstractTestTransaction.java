@@ -31,7 +31,7 @@ public abstract class AbstractTestTransaction extends BaseTest
     protected abstract Dataset create() ;
     
     @Test
-    public void transaction_err_00() {
+    public void transaction_00() {
         Dataset ds = create() ;
         assertTrue(ds.supportsTransactions()) ;
     }
@@ -131,7 +131,57 @@ public abstract class AbstractTestTransaction extends BaseTest
         write(ds) ;
         read2(ds) ;
     }
+    
+    // Cycle misalignment.
+    // test : commit
+    // test : abort
+    // Permit explain .end() - the case of "end" when not sure:  begin...end.end. 
+    
+    @Test(expected=JenaTransactionException.class)
+    public void transaction_err_nontxn_commit_1() { 
+        Dataset ds = create() ;
+        ds.commit() ;
+    }    
+    
+    @Test(expected=JenaTransactionException.class)
+    public void transaction_err_nontxn_commit_2() { 
+        Dataset ds = create() ;
+        ds.begin(READ) ;
+        ds.end() ;
+        ds.commit() ;
+    }    
+    
+    @Test(expected=JenaTransactionException.class)
+    public void transaction_err_nontxn_commit_3() { 
+        Dataset ds = create() ;
+        ds.begin(WRITE) ;
+        ds.end() ;
+        ds.commit() ;
+    }    
 
+    @Test(expected=JenaTransactionException.class)
+    public void transaction_err_nontxn_abort_1() { 
+        Dataset ds = create() ;
+        ds.abort() ;
+    }    
+
+    @Test(expected=JenaTransactionException.class)
+    public void transaction_err_nontxn_abort_2() { 
+        Dataset ds = create() ;
+        ds.begin(READ) ;
+        ds.end() ;
+        ds.abort() ;
+    }    
+
+    @Test(expected=JenaTransactionException.class)
+    public void transaction_err_nontxn_abort_3() { 
+        Dataset ds = create() ;
+        ds.begin(WRITE) ;
+        ds.end() ;
+        ds.abort() ;
+    }    
+
+    
     @Test
     public void transaction_err_01()    { testBeginBegin(WRITE, WRITE) ; }
 
@@ -191,6 +241,10 @@ public abstract class AbstractTestTransaction extends BaseTest
         ds.end() ;
     }
 
+    private static void safeEnd(Dataset ds) {
+        try { ds.end() ; } catch (JenaTransactionException ex) {}
+    }
+    
     // Error conditions that should be detected.
 
     private void testBeginBegin(ReadWrite mode1, ReadWrite mode2) {
@@ -201,7 +255,7 @@ public abstract class AbstractTestTransaction extends BaseTest
             fail("Expected transaction exception - begin-begin (" + mode1 + ", " + mode2 + ")") ;
         }
         catch (JenaTransactionException ex) {
-            ds.end() ;
+            safeEnd(ds) ;
         }
     }
     
@@ -214,7 +268,7 @@ public abstract class AbstractTestTransaction extends BaseTest
             fail("Expected transaction exception - commit-commit(" + mode + ")") ;
         }
         catch (JenaTransactionException ex) {
-            ds.end() ;
+            safeEnd(ds) ;
         }
     }
 
@@ -227,7 +281,7 @@ public abstract class AbstractTestTransaction extends BaseTest
             fail("Expected transaction exception - commit-abort(" + mode + ")") ;
         }
         catch (JenaTransactionException ex) {
-            ds.end() ;
+            safeEnd(ds) ;
         }
     }
 
@@ -253,7 +307,7 @@ public abstract class AbstractTestTransaction extends BaseTest
             fail("Expected transaction exception - abort-commit(" + mode + ")") ;
         }
         catch (JenaTransactionException ex) {
-            ds.end() ;
+            safeEnd(ds) ;
         }
     }    
 }

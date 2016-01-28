@@ -18,6 +18,7 @@
 
 package org.apache.jena.fuseki;
 
+import org.apache.jena.fuseki.server.DatasetRegistry ;
 import org.apache.jena.graph.Graph ;
 import org.apache.jena.graph.Node ;
 import org.apache.jena.graph.NodeFactory ;
@@ -92,12 +93,13 @@ public class ServerTest
     
     protected static void setupServer()
     {
-        DatasetGraph dsg = DatasetGraphFactory.createMem() ;
+        DatasetGraph dsg = DatasetGraphFactory.create() ;
         server = EmbeddedFusekiServer.create(port, dsg, datasetPath) ;
         server.start() ;
     }
     
     protected static void teardownServer() {
+        DatasetRegistry.get().clear() ;
         if ( server != null )
             server.stop() ;
         server = null ;

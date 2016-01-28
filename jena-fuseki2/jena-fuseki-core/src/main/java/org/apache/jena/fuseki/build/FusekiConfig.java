@@ -18,6 +18,9 @@
 
 package org.apache.jena.fuseki.build ;
 
+import static org.apache.jena.riot.RDFLanguages.filenameToLang;
+import static org.apache.jena.riot.RDFParserRegistry.isRegistered;
+
 import java.io.File ;
 import java.io.FilenameFilter ;
 import java.io.IOException ;
@@ -46,7 +49,7 @@ import org.apache.jena.query.QuerySolution ;
 import org.apache.jena.query.ReadWrite ;
 import org.apache.jena.query.ResultSet ;
 import org.apache.jena.rdf.model.* ;
-import org.apache.jena.riot.RDFDataMgr ;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.sparql.core.assembler.AssemblerUtils ;
 import org.apache.jena.update.UpdateAction ;
 import org.apache.jena.update.UpdateFactory ;
@@ -73,10 +76,9 @@ public class FusekiConfig {
     /** Has side effects in server setup */
     public static List<DataAccessPoint> readConfigFile(String filename) {
         // Old-style config file.
-        Model model = RDFDataMgr.loadModel(filename) ;
+        Model model = readAssemblerFile(filename) ;
         if ( model.size() == 0 )
             return Collections.emptyList() ;
-        additionalRDF(model) ;
         server(model) ;
         return servicesAndDatasets(model) ;
     }
@@ -163,25 +165,32 @@ public class FusekiConfig {
         }
     }
     
-    // XXX Move to utils
-    private static Model additionalRDF(Model m) {
-        SystemState.init$();        // Why? mvn jetty:run-war
-        String x1 = StrUtils.strjoinNL
-            ( SystemState.PREFIXES, 
-              "INSERT                    { [] ja:loadClass 'org.apache.jena.tdb.TDB' }",
-              "WHERE { FILTER NOT EXISTS { [] ja:loadClass 'org.apache.jena.tdb.TDB' } }"
-             ) ;
-        String x2 = StrUtils.strjoinNL
-            (SystemState.PREFIXES,
-             "INSERT DATA {",
-             "   tdb:DatasetTDB  rdfs:subClassOf  ja:RDFDataset .",
-             "   tdb:GraphTDB    rdfs:subClassOf  ja:Model .",
-             "}" 
-             ) ;
-        execute(m, x1) ;
-        execute(m, x2) ;
+    private static Model readAssemblerFile(String filename) {
+        Model m = AssemblerUtils.readAssemblerFile(filename) ;
+        // Any extras.
         return m ;
     }
+    
+//    // REMOVE THIS - now done by TDB itself. 
+//    private static Model additionalRDF(Model m) {
+//        SystemState.init$();        // Why? mvn jetty:run-war
+////        // This should not be needed any more (jena system init)
+////        String x1 = StrUtils.strjoinNL
+////            ( SystemState.PREFIXES, 
+////              "INSERT                    { [] ja:loadClass 'org.apache.jena.tdb.TDB' }",
+////              "WHERE { FILTER NOT EXISTS { [] ja:loadClass 'org.apache.jena.tdb.TDB' } }"
+////             ) ;
+////        String x2 = StrUtils.strjoinNL
+////            (SystemState.PREFIXES,
+////             "INSERT DATA {",
+////             "   tdb:DatasetTDB  rdfs:subClassOf  ja:RDFDataset .",
+////             "   tdb:GraphTDB    rdfs:subClassOf  ja:Model .",
+////             "}" 
+////             ) ;
+////        execute(m, x1) ;
+////        execute(m, x2) ;
+//        return m ;
+//    }
 
     private static void execute(Model m, String x) {
         UpdateRequest req = UpdateFactory.create(x) ;
@@ -210,8 +219,9 @@ public class FusekiConfig {
         }
         // Files that are not hidden.
         DirectoryStream.Filter<Path> filter = (entry)-> {
-                File f = entry.toFile() ;
-                return ! f.isHidden() && f.isFile() ;
+            File f = entry.toFile() ;
+            final Lang lang = filenameToLang(f.getName());
+            return ! f.isHidden() && f.isFile() && lang != null && isRegistered(lang) ;
         } ;
 
         List<DataAccessPoint> dataServiceRef = new ArrayList<>() ;
@@ -219,7 +229,7 @@ public class FusekiConfig {
             for ( Path p : stream ) {
                 String fn = IRILib.filenameToIRI(p.toString()) ;
                 log.info("Load configuration: "+fn);
-                Model m = RDFDataMgr.loadModel(fn) ;
+                Model m = readAssemblerFile(fn) ;
                 DataAccessPoint acc = readConfiguration(m) ; 
                 dataServiceRef.add(acc) ;
             }
@@ -230,7 +240,6 @@ public class FusekiConfig {
     }
 
     private static DataAccessPoint readConfiguration(Model m) {
-        additionalRDF(m) ;
         List<Resource> services = getByType(FusekiVocab.fusekiService, m) ; 
 
         if ( services.size() == 0 ) {
@@ -245,6 +254,7 @@ public class FusekiConfig {
         }
 
         Resource service = services.get(0) ;
+        // Configuration file determines read-only status.
         DataAccessPoint acc = Builder.buildDataAccessPoint(service) ; 
         return acc ;
     }

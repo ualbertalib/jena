@@ -24,7 +24,11 @@ import org.apache.jena.sparql.algebra.TS_Algebra ;
 import org.apache.jena.sparql.algebra.optimize.TS_Optimization ;
 import org.apache.jena.sparql.api.TS_API ;
 import org.apache.jena.sparql.core.TS_Core ;
+import org.apache.jena.sparql.core.assembler.TS_Assembler ;
+import org.apache.jena.sparql.core.journaling.TS_Journaling ;
+import org.apache.jena.sparql.core.mem.TS_DatasetTxnMem ;
 import org.apache.jena.sparql.engine.TS_Engine ;
+import org.apache.jena.sparql.engine.join.TS_Join ;
 import org.apache.jena.sparql.expr.E_Function ;
 import org.apache.jena.sparql.expr.NodeValue ;
 import org.apache.jena.sparql.expr.TS_Expr ;
@@ -61,11 +65,15 @@ import org.junit.runners.Suite ;
     , TS_Negation.class
     , TS_Solver.class
     , TS_Algebra.class
+    , TS_Join.class
     , TS_Optimization.class
     , TS_ResultSet.class
     , TS_Syntax.class
     , TS_API.class
     , TS_Core.class
+    , TS_Assembler.class
+    , TS_Journaling.class
+    , TS_DatasetTxnMem.class
     , TS_Path.class
     , TS_ParamString.class
     , TS_Update.class

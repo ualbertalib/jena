@@ -28,6 +28,7 @@ import org.apache.jena.arq.querybuilder.handlers.DatasetHandler;
 import org.apache.jena.arq.querybuilder.handlers.SolutionModifierHandler;
 import org.apache.jena.arq.querybuilder.handlers.WhereHandler;
 import org.apache.jena.graph.FrontsTriple ;
+import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple ;
 import org.apache.jena.sparql.expr.Expr;
 import org.apache.jena.sparql.lang.sparql_11.ParseException ;
@@ -168,6 +169,13 @@ public class ConstructBuilder extends AbstractQueryBuilder<ConstructBuilder>
 		whereHandler.addOptional(t);
 		return this;
 	}
+	
+	@Override
+	public ConstructBuilder addOptional(SelectBuilder t)
+	{
+		whereHandler.addOptional(t.getWhereHandler());
+		return this;
+	}
 
 	@Override
 	public ConstructBuilder addOptional(FrontsTriple t) {
@@ -234,5 +242,9 @@ public class ConstructBuilder extends AbstractQueryBuilder<ConstructBuilder>
 	public ConstructBuilder addConstruct(Object s, Object p, Object o) {
 		return addConstruct(new Triple(makeNode(s), makeNode(p), makeNode(o)));
 	}
-
+	
+	@Override
+	public Node list(Object... objs) {
+		return whereHandler.list(objs);
+	}
 }

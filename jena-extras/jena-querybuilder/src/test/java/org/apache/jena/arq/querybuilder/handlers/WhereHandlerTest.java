@@ -17,6 +17,8 @@
  */
 package org.apache.jena.arq.querybuilder.handlers;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,11 +29,13 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.graph.impl.LiteralLabelFactory;
 import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.expr.E_Random;
 import org.apache.jena.sparql.lang.sparql_11.ParseException;
 import org.apache.jena.vocabulary.RDF;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -107,6 +111,29 @@ public class WhereHandlerTest extends AbstractHandlerTest {
 				query.toString());
 	}
 
+	
+	@Test
+	public void testAddOptionalWhereHandler() throws ParseException {
+		
+		WhereHandler pattern = new WhereHandler(new Query());
+		Var s = Var.alloc("s" );
+		Node q = NodeFactory.createURI( "urn:q" );
+		Node v = NodeFactory.createURI( "urn:v" );
+		Var x = Var.alloc("x");
+		Node n123 = NodeFactory.createLiteral(LiteralLabelFactory.createTypedLiteral(123));	
+		
+		pattern.addWhere( new Triple( s, q,  n123 ) );
+		pattern.addWhere( new Triple( s, v, x));
+		pattern.addFilter( "?x>56");
+		
+		handler.addOptional( pattern );
+		
+		Query expected = QueryFactory.create( "SELECT * WHERE { OPTIONAL { ?s <urn:q> '123'^^<http://www.w3.org/2001/XMLSchema#int> . ?s <urn:v> ?x . FILTER(?x>56) }}");
+		
+		Assert.assertEquals( expected.getQueryPattern(), query.getQueryPattern());
+
+	}
+	
 	@Test
 	public void testAddOptionalObjects() {
 		handler.addOptional(new Triple(NodeFactory.createURI("one"),
@@ -357,5 +384,41 @@ public class WhereHandlerTest extends AbstractHandlerTest {
 				OPEN_CURLY + BIND + OPEN_PAREN + "rand\\(\\)" + SPACE + "AS"
 						+ SPACE + var("foo") + CLOSE_PAREN + CLOSE_CURLY,
 				query.toString());
+	}
+	
+	@Test
+	public void testList() {
+		Node n = handler.list( "<one>", "?var", "'three'" );
+
+		assertContainsRegex(WHERE + OPEN_CURLY 
+				+ "_:b0"+SPACE+ uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first") + SPACE	+ uri("one") + SEMI 
+				+ SPACE + uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest") + SPACE+"_:b1"+ DOT
+				+ SPACE + "_:b1"+SPACE+ uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first") + SPACE + var("var") + SEMI
+				+ SPACE + uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest") + SPACE+"_:b2"+ DOT
+				+ SPACE + "_:b2"+SPACE+ uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first") + SPACE + quote("three") + SEMI
+				+ SPACE + uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest") + SPACE +uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil") 
+				+ CLOSE_CURLY, query.toString());
+		
+	 	assertTrue( n.isBlank() );
+	}
+	
+	@Test
+	public void testListInTriple() {
+		handler.addWhere( new Triple(handler.list( "<one>", "?var", "'three'" ), ResourceFactory.createResource("foo").asNode(), 
+				ResourceFactory.createResource("bar").asNode()));
+
+		assertContainsRegex(
+				 "_:b0"+SPACE+ uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first") + SPACE	+ uri("one") + SEMI 
+				+ SPACE + uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest") + SPACE+"_:b1"+ DOT
+				+ SPACE + "_:b1"+SPACE+ uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first") + SPACE + var("var") + SEMI
+				+ SPACE + uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest") + SPACE+"_:b2"+ DOT
+				+ SPACE + "_:b2"+SPACE+ uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first") + SPACE + quote("three") + SEMI
+				+ SPACE + uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest") + SPACE +uri("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil") 
+				, query.toString());
+		
+		assertContainsRegex(
+				 "_:b0"+SPACE+ uri("foo") + SPACE	+ uri("bar"), query.toString());
+
+	 
 	}
 }
